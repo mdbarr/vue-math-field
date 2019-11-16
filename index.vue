@@ -21,8 +21,8 @@ export default {
   name: 'v-math-field',
   props: {
     value: {
-      type: String,
-      default: '0'
+      type: Number,
+      default: 0
     },
     units: {
       type: String,
@@ -35,6 +35,10 @@ export default {
     precision: {
       type: Number,
       default: 4
+    },
+    notation: {
+      type: String,
+      default: 'fixed'
     },
     numeric: {
       type: Boolean,
@@ -51,7 +55,7 @@ export default {
     };
   },
   created () {
-    this.evaluate(this.value);
+    this.evaluate(this.value.toString());
     this.current = this.pretty;
   },
   methods: {
@@ -81,7 +85,10 @@ export default {
             value = value.to(this.units);
           }
 
-          this.pretty = math.format(value, { precision: this.displayPrecision });
+          this.pretty = math.format(value, {
+            notation: this.notation,
+            precision: this.displayPrecision
+          });
 
           this.error = false;
           this.message = '';
