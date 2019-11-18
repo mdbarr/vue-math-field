@@ -2,11 +2,14 @@
 <v-text-field
   v-bind="$attrs"
   v-model="current"
-  @change="evaluate"
+  @keydown="keydown"
   @focus="focus"
   @blur="blur"
   :error="error"
   :error-messages="message"
+  :class="textColor"
+  :success="!error && mode === 'display'"
+  ref="vtf"
   />
 </template>
 
@@ -26,7 +29,7 @@ export default {
     },
     units: {
       type: String,
-      default: 'voxels'
+      default: 'meters'
     },
     displayPrecision: {
       type: Number,
@@ -43,6 +46,10 @@ export default {
     numeric: {
       type: Boolean,
       default: true
+    },
+    enter: {
+      type: String,
+      default: 'render'
     }
   },
   data: () => {
@@ -57,9 +64,13 @@ export default {
   },
   created () {
     this.mode = 'display';
-    this.evaluate(this.value.toString());
+    this.raw = this.value.toString();
+    this.evaluate(true);
     this.current = this.pretty;
   },
+  computed: { textColor () {
+    return this.mode === 'display' ? 'blue--text' : 'black--text';
+  } },
   methods: {
     round (number) {
       const factor = Math.pow(10, this.precision);
@@ -77,9 +88,43 @@ export default {
         this.$emit('blur', ...args);
       }
     },
-    evaluate (value) {
+    keydown (event) {
+      if (this.mode === 'display' && this.enter === 'render' &&
+          (event.keyCode !== 9 && event.keyCode !== 13)) {
+        event.preventDefault();
+        event.stopPropagation();
+        this.mode = 'edit';
+        this.update();
+      } else if (event.keyCode === 13) {
+        if (this.mode === 'display') {
+          event.preventDefault();
+          event.stopPropagation();
+        } else {
+          this.raw = this.current;
+          this.evaluate();
+
+          if (this.enter === 'blur' && !this.error) {
+            this.$refs.vtf.blur();
+          } else if (this.enter === 'render' && !this.error) {
+            this.mode = 'display';
+            this.update();
+
+            event.preventDefault();
+            event.stopPropagation();
+          } else {
+            this.update();
+          }
+        }
+      }
+    },
+    evaluate (force = false) {
+      let value = this.raw;
+
       if (value.length) {
-        this.raw = value;
+        if (value === this.pretty && !force) {
+          return;
+        }
+
         try {
           value = math.evaluate(value);
           if (typeof value === 'number') {
@@ -108,26 +153,30 @@ export default {
         }
       }
     },
-    update () {
-      if (this.raw) {
-        this.evaluate(this.raw);
-        if (this.mode === 'display') {
-          this.current = this.pretty;
-        } else {
-          this.current = this.raw;
-        }
+    update (recompute = false) {
+      if (recompute) {
+        this.evaluate(true);
+      }
+
+      if (this.mode === 'display') {
+        this.current = this.pretty;
+      } else {
+        this.current = this.raw;
       }
     }
   },
   watch: {
     precision () {
-      this.update();
+      this.update(true);
     },
     displayPrecision () {
-      this.update();
+      this.update(true);
     },
     numeric () {
-      this.update();
+      this.update(true);
+    },
+    units () {
+      this.update(true);
     }
   }
 };
