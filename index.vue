@@ -21,7 +21,7 @@ export default {
   name: 'v-math-field',
   props: {
     value: {
-      type: Number,
+      type: [ Number, String ],
       default: 0
     },
     units: {
@@ -48,6 +48,7 @@ export default {
   data: () => {
     return {
       current: '',
+      mode: 'display',
       raw: '',
       pretty: '',
       error: false,
@@ -55,6 +56,7 @@ export default {
     };
   },
   created () {
+    this.mode = 'display';
     this.evaluate(this.value.toString());
     this.current = this.pretty;
   },
@@ -63,16 +65,17 @@ export default {
       const factor = Math.pow(10, this.precision);
       return Math.round(number * factor) / factor;
     },
-    focus () {
+    focus (...args) {
+      this.mode = 'edit';
       this.current = this.raw;
+      this.$emit('focus', ...args);
     },
-    blur () {
+    blur (...args) {
       if (this.error === false) {
+        this.mode = 'display';
         this.current = this.pretty;
+        this.$emit('blur', ...args);
       }
-    },
-    enter () {
-      this.$refs.vtf.validate();
     },
     evaluate (value) {
       if (value.length) {
@@ -104,6 +107,27 @@ export default {
           this.message = error.message;
         }
       }
+    },
+    update () {
+      if (this.raw) {
+        this.evaluate(this.raw);
+        if (this.mode === 'display') {
+          this.current = this.pretty;
+        } else {
+          this.current = this.raw;
+        }
+      }
+    }
+  },
+  watch: {
+    precision () {
+      this.update();
+    },
+    displayPrecision () {
+      this.update();
+    },
+    numeric () {
+      this.update();
     }
   }
 };
