@@ -5,6 +5,7 @@
   @keydown="keydown"
   @focus="focus"
   @blur="blur"
+  @click:clear="clear"
   :error="error"
   :error-messages="message"
   :class="textColor"
@@ -83,8 +84,14 @@ export default {
     },
     blur (...args) {
       if (this.error === false) {
-        this.mode = 'display';
-        this.current = this.pretty;
+        if (this.mode === 'edit') {
+          this.raw = this.current;
+          this.evaluate();
+          if (!this.error) {
+            this.mode = 'display';
+            this.current = this.pretty;
+          }
+        }
         this.$emit('blur', ...args);
       }
     },
@@ -115,6 +122,22 @@ export default {
             this.update();
           }
         }
+      } else if (event.keyCode === 27) {
+        if (this.mode === 'edit') {
+          this.current = this.raw;
+        } else {
+          this.current = this.pretty;
+        }
+      }
+    },
+    clear () {
+      this.current = '';
+      this.raw = '';
+      this.pretty = '';
+      if (this.numeric) {
+        this.$emit('input', 0);
+      } else {
+        this.$emit('input', '');
       }
     },
     evaluate (force = false) {
