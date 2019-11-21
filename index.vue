@@ -1,17 +1,26 @@
 <template>
 <v-text-field
-  v-bind="$attrs"
-  v-model="current"
-  @keydown="keydown"
-  @focus="focus"
-  @blur="blur"
-  @click:clear="clear"
-  :error="error"
-  :error-messages="message"
   :class="textColor"
+  :error-messages="message"
+  :error="error"
   :success="!error && mode === 'display'"
+  @blur="blur"
+  @click:append-outer="$emit('click:append-outer', $event)"
+  @click:append="$emit('click:append', $event)"
+  @click:clear="clear"
+  @click:prepend-inner="$emit('click:prepend-inner', $event)"
+  @click:prepend="$emit('click:prepend', $event)"
+  @focus="focus"
+  @keydown="keydown"
   ref="vtf"
-  />
+  v-bind="attributes"
+  v-model="current"
+  >
+  <slot v-for="(_, name) in $slots" :name="name" :slot="name" />
+  <template v-for="(_, name) in $scopedSlots" :slot="name" slot-scope="slotData">
+    <slot :name="name" v-bind="slotData" />
+  </template>
+</v-text-field>
 </template>
 
 <script>
@@ -24,21 +33,13 @@ math.createUnit('voxel', {
 export default {
   name: 'v-math-field',
   props: {
-    value: {
-      type: [ Number, String ],
-      default: 0
-    },
-    units: {
-      type: String,
-      default: 'meters'
-    },
     displayPrecision: {
       type: Number,
       default: 2
     },
-    precision: {
-      type: Number,
-      default: 4
+    enter: {
+      type: String,
+      default: 'render'
     },
     notation: {
       type: String,
@@ -48,9 +49,26 @@ export default {
       type: Boolean,
       default: true
     },
-    enter: {
+    precision: {
+      type: Number,
+      default: 4
+    },
+    rules: {
+      type: Array,
+      default: () => { return []; }
+    },
+    type: {
       type: String,
-      default: 'render'
+      default: 'number'
+    },
+    units: {
+      type: String,
+      default: 'meters'
+    },
+    uuid: { type: String },
+    value: {
+      type: [ Number, String ],
+      default: 0
     }
   },
   data: () => {
@@ -65,17 +83,39 @@ export default {
   },
   created () {
     this.mode = 'display';
-    this.raw = this.value.toString();
+    if (this.uuid && localStorage.getItem(this.uuid)) {
+      this.raw = localStorage.getItem(this.uuid);
+    } else {
+      this.raw = this.value.toString();
+    }
+
+    this.attributes = {};
+    for (const attr in this.$attrs) {
+      if (attr !== 'type' && attr !== 'rules') {
+        this.attributes[attr] = this.$attrs[attr];
+      }
+    }
+
     this.evaluate(true);
     this.current = this.pretty;
   },
   computed: { textColor () {
+    if (this.$attrs.class) {
+      return this.$attrs.class;
+    }
     return this.mode === 'display' ? 'blue--text' : 'black--text';
   } },
   methods: {
     round (number) {
       const factor = Math.pow(10, this.precision);
       return Math.round(number * factor) / factor;
+    },
+    save (value) {
+      this.raw = value;
+      if (this.uuid) {
+        localStorage.setItem(this.uuid, this.raw.toString());
+      }
+      return this.raw;
     },
     focus (...args) {
       this.mode = 'edit';
@@ -85,7 +125,8 @@ export default {
     blur (...args) {
       if (this.error === false) {
         if (this.mode === 'edit') {
-          this.raw = this.current;
+          this.save(this.current);
+
           this.evaluate();
           if (!this.error) {
             this.mode = 'display';
@@ -107,7 +148,7 @@ export default {
           event.preventDefault();
           event.stopPropagation();
         } else {
-          this.raw = this.current;
+          this.save(this.current);
           this.evaluate();
 
           if (this.enter === 'blur' && !this.error) {
@@ -129,16 +170,20 @@ export default {
           this.current = this.pretty;
         }
       }
+      this.$emit('keydown', event);
     },
-    clear () {
+    clear (event) {
       this.current = '';
-      this.raw = '';
+      this.save(this.current);
       this.pretty = '';
-      if (this.numeric) {
+      if (this.numeric || this.type === 'number') {
         this.$emit('input', 0);
+        this.$emit('change', 0);
       } else {
         this.$emit('input', '');
+        this.$emit('change', '');
       }
+      this.$emit('click:clear', event);
     },
     evaluate (force = false) {
       let value = this.raw;
@@ -164,15 +209,30 @@ export default {
           this.error = false;
           this.message = '';
 
-          if (this.numeric) {
-            const number = this.round(value.toNumber(this.units));
-            this.$emit('input', number);
+          const number = this.round(value.toNumber(this.units));
+          const returnValue = (this.numeric || this.type === 'number') ? number : this.pretty;
+
+          for (const rule of this.rules) {
+            const valid = rule(returnValue);
+            if (valid !== true) {
+              this.error = true;
+              if (typeof valid === 'string') {
+                this.message = valid;
+              }
+              break;
+            }
+          }
+
+          if (this.error) {
+            this.$emit('update:error', this.error);
           } else {
-            this.$emit('input', this.pretty);
+            this.$emit('input', returnValue);
+            this.$emit('change', returnValue);
           }
         } catch (error) {
           this.error = true;
           this.message = error.message;
+          this.$emit('update:error', this.error);
         }
       }
     },
