@@ -8,6 +8,6 @@
   "license": "MIT",
   "private": false,
   "dependencies": {
-    "mathjs": "^6.2.3"
+    "mathjs": "^6.2.5"
   }
 }
