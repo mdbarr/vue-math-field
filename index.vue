@@ -86,6 +86,7 @@ export default {
       raw: '',
       pretty: '',
       error: false,
+      errored: '',
       message: ''
     };
   },
@@ -143,7 +144,7 @@ export default {
       }
     },
     blur (...args) {
-      if (this.error === false) {
+      if (this.error === false || (this.errored !== this.current && this.mode === 'edit')) {
         if (this.mode === 'edit') {
           this.save(this.current);
 
@@ -230,6 +231,7 @@ export default {
           });
 
           this.error = false;
+          this.errored = '';
           this.message = '';
 
           const number = this.round(value.toNumber(this.units));
@@ -239,6 +241,7 @@ export default {
             const valid = rule(returnValue);
             if (valid !== true) {
               this.error = true;
+              this.errored = this.raw;
               if (typeof valid === 'string') {
                 this.message = valid;
               }
@@ -254,6 +257,7 @@ export default {
           }
         } catch (error) {
           this.error = true;
+          this.errored = this.raw;
           this.message = error.message;
           this.$emit('update:error', this.error);
         }
