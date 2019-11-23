@@ -9,5 +9,11 @@
   "private": false,
   "dependencies": {
     "mathjs": "^6.2.5"
+  },
+  "devDependencies": {
+    "eslint": "^6.7.0"
+  },
+  "scripts": {
+    "lint": "eslint index.js"
   }
 }
