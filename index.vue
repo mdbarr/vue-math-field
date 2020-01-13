@@ -10,6 +10,7 @@
   @click:clear="clear"
   @click:prepend-inner="$emit('click:prepend-inner', $event)"
   @click:prepend="$emit('click:prepend', $event)"
+  @click="click"
   @focus="focus"
   @keydown="keydown"
   ref="vtf"
@@ -141,6 +142,13 @@ export default {
       this.$emit('focus', ...args);
       if (this.autoSelect) {
         this.select();
+      }
+    },
+    click () {
+      if (this.mode === 'display') {
+        this.mode = 'edit';
+        this.current = this.raw;
+        this.update();
       }
     },
     blur (...args) {
