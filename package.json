@@ -1,6 +1,6 @@
 {
   "name": "vue-math-field",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Vue / Vuetify Mathjs Input Field Component",
   "repository": "git@github.com:mdbarr/vue-math-field.git",
   "author": "Mark Barr <mark@hyperingenuity.com>",
