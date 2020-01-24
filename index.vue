@@ -285,7 +285,7 @@ export default {
   },
   watch: {
     value (newValue) {
-      this.raw = this.newValue.toString();
+      this.raw = newValue.toString();
       this.update(true);
     },
     precision () {
