@@ -284,6 +284,10 @@ export default {
     }
   },
   watch: {
+    value (newValue) {
+      this.raw = this.newValue.toString();
+      this.update(true);
+    },
     precision () {
       this.update(true);
     },
