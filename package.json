@@ -8,6 +8,6 @@
   "private": false,
   "main": "index.vue",
   "dependencies": {
-    "mathjs": "^6.5.0"
+    "mathjs": "^7.0.0"
   }
 }
